@@ -429,67 +429,96 @@ export default function ComponentLayoutsSettings() {
 
       {/* Editor Dialog */}
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-        <DialogContent className="max-w-[98vw] h-[96vh] p-0 flex flex-col border-4 border-black rounded-3xl">
-          <DialogHeader className="px-6 py-4 border-b-2 border-black flex-shrink-0">
-            <div className="flex items-center gap-4">
-              <DialogTitle className="text-lg font-bold whitespace-nowrap">
-                {editingLayout ? 'EDIT' : 'NEW'} LAYOUT
-              </DialogTitle>
-
-              <Input
-                value={layoutName}
-                onChange={(e) => setLayoutName(e.target.value)}
-                placeholder="Layout Name"
-                className="h-9 text-sm flex-1"
-              />
-
-              <Input
-                type="text"
-                value={layoutDescription}
-                onChange={(e) => setLayoutDescription(e.target.value)}
-                placeholder="Description (optional)"
-                className="h-9 text-sm flex-1"
-              />
-
-              {/* Quick Start Templates Dropdown */}
-              {QUICK_START_TEMPLATES.length > 0 && !editingLayout && (
-                <select
-                  className="h-9 px-3 border-2 border-black rounded-lg text-xs font-bold hover:bg-gray-50 transition-colors cursor-pointer"
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      handleLoadTemplate(e.target.value);
-                      e.target.value = '';
-                    }
-                  }}
-                  defaultValue=""
-                >
-                  <option value="" disabled>Load Template</option>
-                  {QUICK_START_TEMPLATES.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {/* AI Assistant Info Button */}
-              <button
-                className="h-9 px-3 border-2 border-purple-600 text-purple-600 rounded-lg text-xs font-bold hover:bg-purple-50 transition-colors flex items-center gap-1.5 whitespace-nowrap"
-                onClick={() => {
-                  const prompt = `Create a JSON component layout for a 1080x1080 social media slide. Use this schema: root container with display:flex, children array with text/heading/shape components. Include template variables like {{title}}, {{quote}}, {{background_color}}. Example: centered quote card with large quote text, decorative line, and attribution. Return only valid JSON.`;
-                  navigator.clipboard.writeText(prompt);
-                  toast.success('Prompt copied! Paste it into ChatGPT, Claude, or any LLM. See LLM_LAYOUT_PROMPT.md for detailed guide.');
-                }}
-              >
-                <Zap className="h-3 w-3" />
-                AI
-              </button>
-            </div>
+        <DialogContent className="w-[95vw] max-w-[2000px] h-[92vh] p-0 flex flex-col border-4 border-black rounded-3xl">
+          <DialogHeader className="px-10 pt-10 pb-8 border-b-3 border-black flex-shrink-0">
+            <DialogTitle className="text-2xl font-bold mb-4">
+              {editingLayout ? 'EDIT COMPONENT LAYOUT' : 'NEW COMPONENT LAYOUT'}
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Create layouts using JSON schemas with visual components
+            </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 flex overflow-hidden min-h-0">
-            {/* Full-Width Code Editor */}
-            <div className="flex-1 flex flex-col p-6 min-h-0">
+            {/* Left Sidebar - Form Fields */}
+            <div className="w-[22%] border-r-3 border-black p-8 overflow-y-auto">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold mb-2 uppercase">
+                    Layout Name *
+                  </label>
+                  <Input
+                    value={layoutName}
+                    onChange={(e) => setLayoutName(e.target.value)}
+                    placeholder="e.g., Bold Quote Card"
+                    className="h-11 text-base"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold mb-2 uppercase">
+                    Description
+                  </label>
+                  <Textarea
+                    value={layoutDescription}
+                    onChange={(e) => setLayoutDescription(e.target.value)}
+                    placeholder="e.g., Quote with large typography"
+                    rows={3}
+                    className="text-base"
+                  />
+                </div>
+
+                {/* AI Assistant Info */}
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-3 border-purple-800 rounded-2xl p-4">
+                  <div className="flex items-start gap-2 mb-3">
+                    <Zap className="h-4 w-4 text-purple-800 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-bold uppercase text-purple-900 mb-2">AI Layout Generation</h4>
+                      <p className="text-xs text-purple-800 leading-relaxed mb-2">
+                        Use ChatGPT, Claude, or any LLM to generate layouts!
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const prompt = `Create a JSON component layout for a 1080x1080 social media slide. Use this schema: root container with display:flex, children array with text/heading/shape components. Include template variables like {{title}}, {{quote}}, {{background_color}}. Example: centered quote card with large quote text, decorative line, and attribution. Return only valid JSON.`;
+                      navigator.clipboard.writeText(prompt);
+                      toast.success('Prompt copied! Paste it into ChatGPT, Claude, or any LLM. See LLM_LAYOUT_PROMPT.md for detailed guide.');
+                    }}
+                    className="w-full px-3 py-2 bg-purple-800 text-white border-2 border-purple-900 rounded-lg text-xs font-bold hover:bg-purple-900 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Copy className="h-3 w-3" />
+                    COPY AI PROMPT
+                  </button>
+                  <p className="text-xs text-purple-700 mt-2 flex items-start gap-1">
+                    <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
+                    <span>See LLM_LAYOUT_PROMPT.md for detailed guide</span>
+                  </p>
+                </div>
+
+                {/* Quick Start Templates */}
+                {QUICK_START_TEMPLATES.length > 0 && !editingLayout && (
+                  <div className="bg-blue-50 border-3 border-black rounded-2xl p-4">
+                    <h4 className="text-xs font-bold uppercase mb-3">Quick Start</h4>
+                    <div className="space-y-2">
+                      {QUICK_START_TEMPLATES.map((template) => (
+                        <button
+                          key={template.id}
+                          onClick={() => handleLoadTemplate(template.id)}
+                          className="w-full text-left px-3 py-2 bg-white border-2 border-black rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="font-bold text-xs mb-1">{template.name}</div>
+                          <div className="text-xs text-gray-600">{template.description}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Side - Code Editor */}
+            <div className="flex-1 flex flex-col p-10 min-h-0">
               <CodeEditorPanel
                 title="Schema Editor (JSON)"
                 language="json"
@@ -500,18 +529,20 @@ export default function ComponentLayoutsSettings() {
             </div>
           </div>
 
-          <DialogFooter className="px-6 py-3 border-t-2 border-black flex-shrink-0">
-            <div className="flex gap-3 w-full justify-end">
+          <DialogFooter className="px-10 py-6 border-t-3 border-black flex-shrink-0">
+            <div className="flex gap-4 w-full justify-end">
               <Button
                 variant="outline"
+                size="lg"
                 onClick={() => setEditorOpen(false)}
-                className="px-6 py-2 text-sm font-bold"
+                className="px-8 py-4 text-base font-bold"
               >
                 Cancel
               </Button>
               <Button
+                size="lg"
                 onClick={handleSaveLayout}
-                className="px-6 py-2 text-sm font-bold"
+                className="px-8 py-4 text-base font-bold"
               >
                 {editingLayout ? 'Save Changes' : 'Create Layout'}
               </Button>
