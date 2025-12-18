@@ -32,6 +32,7 @@ import {
   Info,
 } from 'lucide-react';
 import FontsSettings from '../components/FontsSettings';
+import ComponentLayoutsSettings from '../components/ComponentLayoutsSettings';
 import {
   getAllCustomLayouts,
   createCustomLayout,
@@ -231,6 +232,9 @@ export default function Settings() {
                 <ArrowLeft size={18} />
                 Back to Dashboard
               </button>
+              <div className="mb-6">
+                <span className="text-sm font-bold text-gray-500 uppercase tracking-wider">go round</span>
+              </div>
               <h1 className="dof-huge-title mb-3">
                 SETTINGS
               </h1>
@@ -248,6 +252,12 @@ export default function Settings() {
               className="rounded-full px-10 py-3.5 font-bold uppercase text-sm data-[state=active]:bg-black data-[state=active]:text-white transition-all"
             >
               Custom Layouts
+            </TabsTrigger>
+            <TabsTrigger
+              value="component-layouts"
+              className="rounded-full px-10 py-3.5 font-bold uppercase text-sm data-[state=active]:bg-black data-[state=active]:text-white transition-all"
+            >
+              Component Layouts
             </TabsTrigger>
             <TabsTrigger
               value="fonts"
@@ -371,6 +381,10 @@ export default function Settings() {
                 )}
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="component-layouts">
+            <ComponentLayoutsSettings />
           </TabsContent>
 
           <TabsContent value="fonts">
