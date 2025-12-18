@@ -424,8 +424,8 @@ export default function Settings() {
 
           {/* Main Content - Full Height */}
           <div className="flex-1 flex overflow-hidden min-h-0">
-            {/* Left Sidebar - Narrow */}
-            <div className="w-[280px] border-r-3 border-black p-5 overflow-y-auto flex-shrink-0">
+            {/* Left Sidebar - 40% width */}
+            <div className="w-[40%] border-r-3 border-black p-5 overflow-y-auto flex-shrink-0">
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold mb-1.5 uppercase">
@@ -472,8 +472,8 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Right Side - Code Editors FULL HEIGHT */}
-            <div className="flex-1 flex flex-col min-h-0">
+            {/* Right Side - Code Editors FULL HEIGHT (60% width) */}
+            <div className="w-[60%] flex flex-col min-h-0 flex-shrink-0">
               <Tabs defaultValue="html" className="flex-1 flex flex-col min-h-0">
                 <TabsList className="mx-5 mt-5 bg-gray-100 p-2 rounded-full border-3 border-black flex-shrink-0">
                   <TabsTrigger
