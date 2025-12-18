@@ -154,9 +154,9 @@ export default function LayoutExplorer({
 
         <div className="flex flex-1 overflow-hidden min-h-0">
           {/* Sidebar - Layout List (Narrower) */}
-          <div className="w-[280px] border-r-3 border-black flex flex-col">
+          <div className="w-[280px] border-r-3 border-black flex flex-col overflow-hidden min-h-0">
             {/* Category Filter */}
-            <div className="p-6 border-b-3 border-black">
+            <div className="p-6 border-b-3 border-black flex-shrink-0">
               <h3 className="text-xs font-bold uppercase mb-3 text-gray-600">Category</h3>
               <div className="flex flex-wrap gap-1.5">
                 {LAYOUT_CATEGORIES.map(cat => (
@@ -175,8 +175,8 @@ export default function LayoutExplorer({
               </div>
             </div>
 
-            {/* Layout List */}
-            <ScrollArea className="flex-1">
+            {/* Layout List - Scrollable */}
+            <ScrollArea className="flex-1 min-h-0">
               <div className="p-4 space-y-2">
                 {filteredLayouts.map(layout => (
                   <div
@@ -247,7 +247,7 @@ export default function LayoutExplorer({
             </div>
           </div>
 
-          {/* Main Preview Area - TRUE 1:1 PREVIEW */}
+          {/* Main Preview Area - Optimized Preview Size */}
           <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center p-8">
             <div className="flex flex-col items-center">
               {/* Layout Name Badge */}
@@ -257,18 +257,25 @@ export default function LayoutExplorer({
                 </span>
               </div>
 
-              {/* TRUE 1:1 Preview - Actual Export Size! */}
+              {/* Preview at 70% of export size for better fit */}
               <div
                 className="bg-white rounded-2xl border-[3px] border-black shadow-2xl overflow-hidden"
-                style={{ width: '1080px', height: '1080px' }}
+                style={{ width: '756px', height: '756px' }}
               >
-                {renderLayout(previewLayout)}
+                <div style={{
+                  width: '1080px',
+                  height: '1080px',
+                  transform: 'scale(0.7)',
+                  transformOrigin: 'top left'
+                }}>
+                  {renderLayout(previewLayout)}
+                </div>
               </div>
 
-              {/* True Size Badge */}
-              <div className="mt-4 px-4 py-2 bg-green-100 border-2 border-green-600 rounded-full">
-                <span className="text-sm text-green-800 font-bold">
-                  ✓ 1:1 Preview (1080×1080px - Actual Size)
+              {/* Preview Info Badge */}
+              <div className="mt-4 px-4 py-2 bg-blue-100 border-2 border-blue-600 rounded-full">
+                <span className="text-sm text-blue-800 font-bold">
+                  Preview (Export: 1080×1080px)
                 </span>
               </div>
             </div>
