@@ -10,7 +10,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from './ui/dialog';
 import { Badge } from './ui/badge';
 import { getAllCustomLayouts } from '@/lib/customLayoutStorage';
