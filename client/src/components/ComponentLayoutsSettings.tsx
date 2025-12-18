@@ -454,8 +454,8 @@ export default function ComponentLayoutsSettings() {
 
           {/* Main Content - Full Height */}
           <div className="flex-1 flex overflow-hidden min-h-0">
-            {/* Left Sidebar - Narrow */}
-            <div className="w-[280px] border-r-3 border-black p-5 overflow-y-auto flex-shrink-0">
+            {/* Left Sidebar - 40% width */}
+            <div className="w-[40%] border-r-3 border-black p-5 overflow-y-auto flex-shrink-0">
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold mb-1.5 uppercase">
@@ -521,8 +521,8 @@ export default function ComponentLayoutsSettings() {
               </div>
             </div>
 
-            {/* Right Side - Code Editor FULL HEIGHT */}
-            <div className="flex-1 flex flex-col min-h-0 p-5">
+            {/* Right Side - Code Editor FULL HEIGHT (60% width) */}
+            <div className="w-[60%] flex flex-col min-h-0 p-5 flex-shrink-0">
               <CodeEditorPanel
                 title="Schema Editor (JSON)"
                 language="json"
