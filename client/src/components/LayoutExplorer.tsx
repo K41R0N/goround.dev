@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { SlideData, LayoutType } from '@/types/carousel';
 import LayoutRenderer from './LayoutRenderer';
+import ComponentRenderer from './ComponentRenderer';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -13,6 +14,9 @@ import {
 } from './ui/dialog';
 import { Badge } from './ui/badge';
 import { getAllCustomLayouts } from '@/lib/customLayoutStorage';
+import { getAllComponentLayouts } from '@/lib/componentLayoutStorage';
+import { getFontSettings } from '@/lib/fontStorage';
+import type { ComponentContext } from '@/types/componentLayout';
 
 interface LayoutExplorerProps {
   open: boolean;
@@ -39,7 +43,7 @@ const BUILT_IN_LAYOUTS = [
   { id: 'anti_marketing_cta', name: 'CTA (Anti-Marketing)', category: 'Marketing', description: 'CTA card with arrow' },
 ] as const;
 
-const LAYOUT_CATEGORIES = ['All', 'Text', 'Impact', 'Quote', 'Media', 'Marketing', 'Custom'] as const;
+const LAYOUT_CATEGORIES = ['All', 'Text', 'Impact', 'Quote', 'Media', 'Marketing', 'Custom', 'Component'] as const;
 
 export default function LayoutExplorer({
   open,
@@ -53,24 +57,35 @@ export default function LayoutExplorer({
   const [compareMode, setCompareMode] = useState(false);
   const [compareLayout, setCompareLayout] = useState<string | null>(null);
 
-  // Get custom layouts
+  // Get custom and component layouts
   const customLayouts = getAllCustomLayouts();
+  const componentLayouts = getAllComponentLayouts();
 
   // All available layouts
   const allLayouts = useMemo(() => {
     const builtIn = BUILT_IN_LAYOUTS.map(l => ({
       ...l,
-      isCustom: false
+      isCustom: false,
+      isComponent: false
     }));
     const custom = customLayouts.map(l => ({
       id: `custom-${l.id}`,
       name: l.name,
       category: 'Custom',
       description: l.description || 'Custom layout',
-      isCustom: true
+      isCustom: true,
+      isComponent: false
     }));
-    return [...builtIn, ...custom];
-  }, [customLayouts]);
+    const component = componentLayouts.map(l => ({
+      id: `component-${l.id}`,
+      name: l.name,
+      category: 'Component',
+      description: l.description || 'Component-based layout',
+      isCustom: false,
+      isComponent: true
+    }));
+    return [...builtIn, ...custom, ...component];
+  }, [customLayouts, componentLayouts]);
 
   // Filter layouts by category
   const filteredLayouts = useMemo(() => {
@@ -83,6 +98,39 @@ export default function LayoutExplorer({
     ...slide,
     layout_type: layoutType as LayoutType
   });
+
+  // Render the appropriate component based on layout type
+  const renderLayout = (layoutType: string) => {
+    // Check if it's a component-based layout
+    if (layoutType.startsWith('component-')) {
+      const layoutId = layoutType.replace('component-', '');
+      const componentLayout = componentLayouts.find(l => l.id === layoutId);
+
+      if (!componentLayout) {
+        return <div className="flex items-center justify-center h-full text-muted-foreground">Layout not found</div>;
+      }
+
+      // Create context for ComponentRenderer
+      const context: ComponentContext = {
+        slideData: {
+          title: slide.title,
+          body_text: slide.body_text,
+          subtitle: slide.subtitle,
+          quote: slide.quote,
+          image_url: slide.image_url,
+          background_color: slide.background_color,
+          font_color: slide.font_color,
+          accent_color: slide.accent_color,
+        },
+        fonts: getFontSettings(),
+      };
+
+      return <ComponentRenderer schema={componentLayout} context={context} />;
+    }
+
+    // Use LayoutRenderer for built-in and custom layouts
+    return <LayoutRenderer slide={getPreviewSlide(layoutType)} />;
+  };
 
   const handleApply = () => {
     onApplyLayout(previewLayout as LayoutType);
@@ -98,25 +146,26 @@ export default function LayoutExplorer({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] h-[90vh] p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <DialogTitle>Layout Explorer</DialogTitle>
-          <DialogDescription>
-            Test different layouts with your content. Current: <Badge variant="outline">{slide.layout_type}</Badge>
+      <DialogContent className="max-w-[98vw] h-[95vh] p-0">
+        <DialogHeader className="px-8 pt-8 pb-6 border-b">
+          <DialogTitle className="text-2xl font-bold">Layout Explorer</DialogTitle>
+          <DialogDescription className="text-base mt-2">
+            Test different layouts with your content. Current: <Badge variant="outline" className="ml-2">{slide.layout_type}</Badge>
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex h-full overflow-hidden">
           {/* Sidebar - Layout List */}
-          <div className="w-80 border-r flex flex-col">
+          <div className="w-96 border-r flex flex-col">
             {/* Category Filter */}
-            <div className="p-4 border-b">
-              <div className="flex flex-wrap gap-2">
+            <div className="p-6 border-b">
+              <div className="flex flex-wrap gap-3">
                 {LAYOUT_CATEGORIES.map(cat => (
                   <Button
                     key={cat}
                     variant={selectedCategory === cat ? 'default' : 'outline'}
-                    size="sm"
+                    size="default"
+                    className="px-4 py-2"
                     onClick={() => setSelectedCategory(cat)}
                   >
                     {cat}
@@ -127,28 +176,33 @@ export default function LayoutExplorer({
 
             {/* Layout List */}
             <ScrollArea className="flex-1">
-              <div className="p-4 space-y-2">
+              <div className="p-6 space-y-3">
                 {filteredLayouts.map(layout => (
                   <Card
                     key={layout.id}
                     className={`cursor-pointer transition-all hover:border-primary ${
-                      previewLayout === layout.id ? 'border-primary bg-primary/5' : ''
+                      previewLayout === layout.id ? 'border-primary bg-primary/5 shadow-md' : ''
                     }`}
                     onClick={() => setPreviewLayout(layout.id)}
                   >
-                    <CardHeader className="p-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-sm font-medium">
+                    <CardHeader className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base font-semibold leading-tight mb-2">
                             {layout.name}
                           </CardTitle>
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-sm text-muted-foreground leading-relaxed">
                             {layout.description}
                           </p>
                         </div>
-                        {layout.isCustom && (
-                          <Badge variant="secondary" className="text-xs">Custom</Badge>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {layout.isCustom && (
+                            <Badge variant="secondary" className="text-xs whitespace-nowrap">Custom</Badge>
+                          )}
+                          {layout.isComponent && (
+                            <Badge variant="default" className="text-xs whitespace-nowrap">Component</Badge>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
                   </Card>
@@ -157,10 +211,10 @@ export default function LayoutExplorer({
             </ScrollArea>
 
             {/* Actions */}
-            <div className="p-4 border-t space-y-2">
+            <div className="p-6 border-t space-y-3">
               <Button
                 className="w-full"
-                size="sm"
+                size="lg"
                 variant={compareMode ? 'outline' : 'default'}
                 onClick={() => {
                   setCompareMode(!compareMode);
@@ -193,7 +247,7 @@ export default function LayoutExplorer({
                         transformOrigin: 'top left'
                       }}
                     >
-                      <LayoutRenderer slide={getPreviewSlide(compareLayout || slide.layout_type)} />
+                      {renderLayout(compareLayout || slide.layout_type)}
                     </div>
                   </div>
 
@@ -212,7 +266,7 @@ export default function LayoutExplorer({
                         transformOrigin: 'top left'
                       }}
                     >
-                      <LayoutRenderer slide={getPreviewSlide(previewLayout)} />
+                      {renderLayout(previewLayout)}
                     </div>
                   </div>
                 </div>
@@ -229,7 +283,7 @@ export default function LayoutExplorer({
                       className="bg-white rounded-lg shadow-2xl overflow-hidden"
                       style={{ width: '1080px', height: '1080px' }}
                     >
-                      <LayoutRenderer slide={getPreviewSlide(previewLayout)} />
+                      {renderLayout(previewLayout)}
                     </div>
                   </div>
                 </div>
@@ -237,27 +291,28 @@ export default function LayoutExplorer({
             </div>
 
             {/* Bottom Action Bar */}
-            <div className="border-t p-4 bg-background">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">
+            <div className="border-t p-6 bg-background">
+              <div className="flex items-center justify-between gap-6">
+                <div className="text-base text-muted-foreground">
                   {previewLayout === slide.layout_type ? (
                     <span>Showing current layout</span>
                   ) : (
-                    <span className="text-primary font-medium">
+                    <span className="text-primary font-semibold">
                       Layout changed: {slide.layout_type} → {allLayouts.find(l => l.id === previewLayout)?.name}
                     </span>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={onClose}>
+                <div className="flex gap-3">
+                  <Button variant="outline" size="lg" onClick={onClose}>
                     Cancel
                   </Button>
                   {onApplyToAll && previewLayout !== slide.layout_type && (
-                    <Button variant="secondary" onClick={handleApplyToAll}>
+                    <Button variant="secondary" size="lg" onClick={handleApplyToAll}>
                       Apply to All Slides
                     </Button>
                   )}
                   <Button
+                    size="lg"
                     onClick={handleApply}
                     disabled={previewLayout === slide.layout_type}
                   >
