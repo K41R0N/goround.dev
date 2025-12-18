@@ -213,73 +213,57 @@ export default function LayoutExplorer({
               </div>
             </ScrollArea>
 
+            {/* Action Buttons - Moved to Sidebar Bottom */}
+            <div className="p-4 border-t-3 border-black bg-white space-y-2">
+              <button
+                className={`w-full dof-btn dof-btn-sm ${
+                  previewLayout === slide.layout_type
+                    ? 'dof-btn-outline opacity-50 cursor-not-allowed'
+                    : 'dof-btn-coral'
+                }`}
+                onClick={handleApply}
+                disabled={previewLayout === slide.layout_type}
+              >
+                Apply Layout
+              </button>
+              {onApplyToAll && previewLayout !== slide.layout_type && (
+                <button
+                  className="w-full dof-btn dof-btn-black dof-btn-sm"
+                  onClick={handleApplyToAll}
+                >
+                  Apply to All Slides
+                </button>
+              )}
+              <button
+                className="w-full dof-btn dof-btn-outline dof-btn-sm"
+                onClick={onClose}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
 
-          {/* Main Preview Area - Maximized */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center p-12">
-              <div className="flex flex-col items-center">
-                {/* Layout Name Badge */}
-                <div className="mb-6">
-                  <span className="px-6 py-3 bg-black text-white border-[3px] border-black rounded-full text-lg font-bold shadow-lg">
-                    {allLayouts.find(l => l.id === previewLayout)?.name}
-                  </span>
-                </div>
-
-                {/* Large Preview */}
-                <div
-                  className="bg-white rounded-2xl border-[3px] border-black shadow-2xl overflow-hidden"
-                  style={{ width: '900px', height: '900px' }}
-                >
-                  {renderLayout(previewLayout)}
-                </div>
-
-                {/* Scale Info */}
-                <div className="mt-4 text-sm text-gray-500 font-medium">
-                  Preview at 83% scale (900×900px)
-                </div>
+          {/* Main Preview Area - Full Height! */}
+          <div className="flex-1 flex items-center justify-center bg-gray-50 p-12">
+            <div className="flex flex-col items-center">
+              {/* Layout Name Badge */}
+              <div className="mb-6">
+                <span className="px-6 py-3 bg-black text-white border-[3px] border-black rounded-full text-lg font-bold shadow-lg">
+                  {allLayouts.find(l => l.id === previewLayout)?.name}
+                </span>
               </div>
-            </div>
 
-            {/* Bottom Action Bar */}
-            <div className="border-t-3 border-black p-6 bg-white flex-shrink-0">
-              <div className="flex items-center justify-between gap-6">
-                <div className="text-sm">
-                  {previewLayout === slide.layout_type ? (
-                    <span className="text-gray-600 font-medium">Currently viewing your existing layout</span>
-                  ) : (
-                    <span className="text-black font-bold">
-                      Change: <span className="text-gray-600">{slide.layout_type}</span> → <span className="text-coral">{allLayouts.find(l => l.id === previewLayout)?.name}</span>
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    className="dof-btn dof-btn-outline"
-                    onClick={onClose}
-                  >
-                    Cancel
-                  </button>
-                  {onApplyToAll && previewLayout !== slide.layout_type && (
-                    <button
-                      className="dof-btn dof-btn-black"
-                      onClick={handleApplyToAll}
-                    >
-                      Apply to All Slides
-                    </button>
-                  )}
-                  <button
-                    className={`dof-btn ${
-                      previewLayout === slide.layout_type
-                        ? 'dof-btn-outline opacity-50 cursor-not-allowed'
-                        : 'dof-btn-coral'
-                    }`}
-                    onClick={handleApply}
-                    disabled={previewLayout === slide.layout_type}
-                  >
-                    Apply Layout
-                  </button>
-                </div>
+              {/* Massive Preview - 1000x1000! */}
+              <div
+                className="bg-white rounded-2xl border-[3px] border-black shadow-2xl overflow-hidden"
+                style={{ width: '1000px', height: '1000px' }}
+              >
+                {renderLayout(previewLayout)}
+              </div>
+
+              {/* Scale Info */}
+              <div className="mt-4 text-sm text-gray-500 font-medium">
+                Preview at 93% scale (1000×1000px)
               </div>
             </div>
           </div>
