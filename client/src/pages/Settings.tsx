@@ -399,63 +399,85 @@ export default function Settings() {
 
       {/* Layout Editor Dialog */}
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-        <DialogContent className="max-w-[98vw] h-[96vh] p-0 flex flex-col border-4 border-black rounded-3xl">
-          <DialogHeader className="px-6 py-4 border-b-2 border-black flex-shrink-0">
-            <div className="flex items-center gap-4">
-              <DialogTitle className="text-lg font-bold whitespace-nowrap">
-                {editingLayout ? 'EDIT' : 'NEW'} LAYOUT
-              </DialogTitle>
-
-              <Input
-                type="text"
-                placeholder="Layout Name"
-                value={layoutName}
-                onChange={(e) => setLayoutName(e.target.value)}
-                className="h-9 text-sm flex-1"
-              />
-
-              <Input
-                type="text"
-                placeholder="Description (optional)"
-                value={layoutDescription}
-                onChange={(e) => setLayoutDescription(e.target.value)}
-                className="h-9 text-sm flex-1"
-              />
-
-              {/* Template Variables Info Button */}
-              <button
-                className="h-9 px-3 border-2 border-blue-600 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors flex items-center gap-1.5 whitespace-nowrap"
-                onClick={() => {
-                  const vars = TEMPLATE_VARIABLES.map(v => `${v.name}: ${v.description}`).join('\n');
-                  alert(`Available Template Variables:\n\n${vars}`);
-                }}
-              >
-                <Info className="h-3 w-3" />
-                Variables
-              </button>
-            </div>
+        <DialogContent className="w-[95vw] max-w-[2000px] h-[92vh] p-0 flex flex-col border-4 border-black rounded-3xl">
+          <DialogHeader className="px-10 pt-10 pb-8 border-b-3 border-black flex-shrink-0">
+            <DialogTitle className="text-2xl font-bold mb-4">
+              {editingLayout ? 'EDIT CUSTOM LAYOUT' : 'CREATE CUSTOM LAYOUT'}
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Use HTML and CSS to create your custom slide layout
+            </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 flex overflow-hidden min-h-0">
-            {/* Full-Width Code Editors with Tabs */}
+            {/* Left Sidebar - Form Fields */}
+            <div className="w-[22%] border-r-3 border-black p-8 overflow-y-auto">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold mb-2 uppercase">
+                    Layout Name *
+                  </label>
+                  <Input
+                    type="text"
+                    placeholder="e.g., Bold Quote Layout"
+                    value={layoutName}
+                    onChange={(e) => setLayoutName(e.target.value)}
+                    className="h-11 text-base"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold mb-2 uppercase">
+                    Description
+                  </label>
+                  <Textarea
+                    placeholder="Describe what this layout is for..."
+                    value={layoutDescription}
+                    onChange={(e) => setLayoutDescription(e.target.value)}
+                    rows={3}
+                    className="text-base"
+                  />
+                </div>
+
+                {/* Template Variables Info */}
+                <div className="bg-blue-50 border-3 border-black rounded-2xl p-4">
+                  <div className="flex items-start gap-2 mb-3">
+                    <Info className="h-4 w-4 text-black mt-0.5 flex-shrink-0" />
+                    <h4 className="text-xs font-bold uppercase">Available Template Variables</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {TEMPLATE_VARIABLES.map((variable) => (
+                      <div key={variable.name} className="flex flex-col gap-1">
+                        <code className="bg-black text-white px-2 py-1 rounded-full text-xs font-bold inline-block w-fit">
+                          {variable.name}
+                        </code>
+                        <span className="text-xs text-gray-700">{variable.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Code Editors with Tabs */}
             <div className="flex-1 flex flex-col min-h-0">
               <Tabs defaultValue="html" className="flex-1 flex flex-col min-h-0">
-                <TabsList className="mx-6 mt-4 bg-gray-100 p-1.5 rounded-full border-2 border-black flex-shrink-0">
+                <TabsList className="mx-10 mt-10 bg-gray-100 p-2 rounded-full border-3 border-black flex-shrink-0">
                   <TabsTrigger
                     value="html"
-                    className="rounded-full px-8 py-2 font-bold uppercase text-xs data-[state=active]:bg-black data-[state=active]:text-white transition-all"
+                    className="rounded-full px-10 py-3 font-bold uppercase text-sm data-[state=active]:bg-black data-[state=active]:text-white transition-all"
                   >
-                    HTML
+                    HTML Template
                   </TabsTrigger>
                   <TabsTrigger
                     value="css"
-                    className="rounded-full px-8 py-2 font-bold uppercase text-xs data-[state=active]:bg-black data-[state=active]:text-white transition-all"
+                    className="rounded-full px-10 py-3 font-bold uppercase text-sm data-[state=active]:bg-black data-[state=active]:text-white transition-all"
                   >
-                    CSS
+                    CSS Template
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="html" className="flex-1 px-6 pb-6 pt-4 min-h-0">
+                <TabsContent value="html" className="flex-1 px-10 pb-10 pt-6 min-h-0">
                   <CodeEditorPanel
                     title="HTML Editor"
                     language="html"
@@ -464,7 +486,7 @@ export default function Settings() {
                   />
                 </TabsContent>
 
-                <TabsContent value="css" className="flex-1 px-6 pb-6 pt-4 min-h-0">
+                <TabsContent value="css" className="flex-1 px-10 pb-10 pt-6 min-h-0">
                   <CodeEditorPanel
                     title="CSS Editor"
                     language="css"
@@ -476,18 +498,20 @@ export default function Settings() {
             </div>
           </div>
 
-          <DialogFooter className="px-6 py-3 border-t-2 border-black flex-shrink-0">
-            <div className="flex gap-3 w-full justify-end">
+          <DialogFooter className="px-10 py-6 border-t-3 border-black flex-shrink-0">
+            <div className="flex gap-4 w-full justify-end">
               <Button
                 variant="outline"
+                size="lg"
                 onClick={() => setEditorOpen(false)}
-                className="px-6 py-2 text-sm font-bold"
+                className="px-8 py-4 text-base font-bold"
               >
                 Cancel
               </Button>
               <Button
+                size="lg"
                 onClick={handleSaveLayout}
-                className="px-6 py-2 text-sm font-bold bg-green-600 hover:bg-green-700"
+                className="px-8 py-4 text-base font-bold bg-green-600 hover:bg-green-700"
               >
                 {editingLayout ? 'UPDATE LAYOUT' : 'CREATE LAYOUT'}
               </Button>
