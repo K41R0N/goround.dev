@@ -429,7 +429,7 @@ export default function ComponentLayoutsSettings() {
 
       {/* Editor Dialog */}
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-        <DialogContent className="w-[95vw] max-w-[2000px] h-[92vh] p-0 flex flex-col border-4 border-black rounded-3xl">
+        <DialogContent className="!w-[95vw] !max-w-[2000px] h-[92vh] p-0 flex flex-col border-4 border-black rounded-3xl">
           <DialogHeader className="px-10 pt-10 pb-8 border-b-3 border-black flex-shrink-0">
             <DialogTitle className="text-2xl font-bold mb-4">
               {editingLayout ? 'EDIT COMPONENT LAYOUT' : 'NEW COMPONENT LAYOUT'}
@@ -441,7 +441,7 @@ export default function ComponentLayoutsSettings() {
 
           <div className="flex-1 flex overflow-hidden min-h-0">
             {/* Left Sidebar - Form Fields */}
-            <div className="w-[22%] border-r-3 border-black p-8 overflow-y-auto">
+            <div className="w-[18%] border-r-3 border-black p-6 overflow-y-auto">
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-bold mb-2 uppercase">
@@ -517,8 +517,8 @@ export default function ComponentLayoutsSettings() {
               </div>
             </div>
 
-            {/* Right Side - Code Editor */}
-            <div className="flex-1 flex flex-col p-10 min-h-0">
+            {/* Right Side - Code Editor (82% width) */}
+            <div className="flex-1 flex flex-col p-8 min-h-0">
               <CodeEditorPanel
                 title="Schema Editor (JSON)"
                 language="json"
