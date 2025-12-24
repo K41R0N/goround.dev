@@ -145,10 +145,10 @@ function parseElement(element: Element): ParsedElement | null {
 
   if (tagName === 'g') {
     const children: ParsedElement[] = [];
-    for (const child of element.children) {
+    Array.from(element.children).forEach((child) => {
       const parsed = parseElement(child);
       if (parsed) children.push(parsed);
-    }
+    });
 
     return {
       type: 'group',
@@ -217,14 +217,14 @@ function extractTemplateData(doc: Document): ExtractedTemplate {
     }
 
     // Recurse into children
-    for (const child of el.children) {
+    Array.from(el.children).forEach((child) => {
       processElement(child);
-    }
+    });
   }
 
-  for (const child of svg.children) {
+  Array.from(svg.children).forEach((child) => {
     processElement(child);
-  }
+  });
 
   return {
     ...dimensions,
@@ -244,14 +244,14 @@ function generateHtmlTemplate(template: ExtractedTemplate, originalSvg: string):
   let html = `<div class="figma-layout" style="width: 100%; height: 100%; position: relative;">`;
 
   // Add text placeholders
-  for (const [variable, elementIds] of template.variables) {
+  template.variables.forEach((elementIds, variable) => {
     if (['title', 'body_text', 'subtitle', 'quote'].includes(variable)) {
       html += `
   <div class="var-${variable}" data-variable="${variable}">
     {{${variable}}}
   </div>`;
     }
-  }
+  });
 
   html += `
 </div>`;
@@ -393,7 +393,7 @@ export function isFigmaSvg(svgContent: string): boolean {
 export function extractColorPalette(svgContent: string): string[] {
   const colorPattern = /#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{3}|rgb\([^)]+\)|rgba\([^)]+\)/g;
   const matches = svgContent.match(colorPattern) || [];
-  return [...new Set(matches)];
+  return Array.from(new Set(matches));
 }
 
 /**
@@ -411,5 +411,5 @@ export function detectFonts(svgContent: string): string[] {
     }
   }
 
-  return [...fonts];
+  return Array.from(fonts);
 }

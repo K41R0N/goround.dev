@@ -63,9 +63,9 @@ export class FileSystemProvider implements StorageProvider {
     const documents = await api.app.getPath('documents');
 
     return {
-      projects: this.projectsPath,
-      templates: this.templatesPath,
-      fonts: this.fontsPath,
+      projects: this.projectsPath!,
+      templates: this.templatesPath!,
+      fonts: this.fontsPath!,
       documents,
     };
   }

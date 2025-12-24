@@ -15,10 +15,13 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
   Upload, Download, ChevronLeft, ChevronRight, Plus, Edit, Trash2,
-  FileDown, Sparkles, GripVertical, Monitor, ArrowLeft, Palette
+  FileDown, Sparkles, GripVertical, Monitor, ArrowLeft, Palette,
+  Image, FileCode, FolderOpen, ChevronDown
 } from 'lucide-react';
 import { EXPORT_PRESETS, type ExportPreset, getDefaultPreset } from '../lib/exportPresets';
 import { CAROUSEL_TEMPLATES } from '../lib/carouselTemplates';
+import { slideToSvg, generateSlideFilename } from '../lib/svgExport';
+import { getStorage, isDesktop } from '../lib/storage';
 import {
   Select,
   SelectContent,
@@ -34,7 +37,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { getProject, saveProject } from '../lib/projectStorage';
+
+type ExportFormat = 'png' | 'svg';
 
 export default function Editor() {
   const params = useParams<{ projectId: string }>();
@@ -57,6 +69,8 @@ export default function Editor() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [slideToDelete, setSlideToDelete] = useState<number | null>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('png');
+  const [exportModalOpen, setExportModalOpen] = useState(false);
 
   const slideRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -275,6 +289,118 @@ export default function Editor() {
       toast.error('Failed to export slides');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  // SVG Export - Single Slide
+  const downloadSlideSvg = async () => {
+    if (!currentSlide || !selectedCarousel) return;
+
+    setIsExporting(true);
+    try {
+      const svgContent = slideToSvg(currentSlide, exportPreset, { includeMetadata: true });
+      const filename = generateSlideFilename(currentSlide, selectedCarousel.id, exportPreset, 'svg');
+
+      // Check if desktop - use native file dialog
+      if (isDesktop()) {
+        const storage = getStorage();
+        const result = await storage.exportSlide(currentSlide, svgContent, {
+          format: 'svg',
+          preset: exportPreset,
+          includeMetadata: true,
+        });
+        if (result.success) {
+          toast.success('SVG exported - open in Figma to edit');
+        } else if (!result.canceled) {
+          toast.error(result.error || 'Failed to export SVG');
+        }
+      } else {
+        // Web - download as file
+        const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success('SVG downloaded - open in Figma to edit');
+      }
+    } catch (error) {
+      console.error('SVG export error:', error);
+      toast.error('Failed to export SVG');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // SVG Export - All Slides
+  const downloadAllSlidesSvg = async () => {
+    if (!selectedCarousel) return;
+
+    setIsExporting(true);
+    try {
+      const carouselExport = {
+        name: selectedCarousel.id,
+        slides: selectedCarousel.slides.map((slide) => ({
+          name: generateSlideFilename(slide, selectedCarousel.id, exportPreset, 'svg'),
+          content: slideToSvg(slide, exportPreset, { includeMetadata: true }),
+        })),
+      };
+
+      // Check if desktop - export to folder
+      if (isDesktop() && project) {
+        const storage = getStorage();
+        const result = await storage.exportProjectFolder(project, [carouselExport], {
+          openAfterExport: true,
+        });
+        if (result.success) {
+          toast.success(`Exported ${selectedCarousel.slides.length} SVGs to folder`);
+        } else if (!result.canceled) {
+          toast.error(result.error || 'Failed to export');
+        }
+      } else {
+        // Web - create ZIP
+        const zip = new JSZip();
+        const folder = zip.folder(selectedCarousel.id);
+
+        if (!folder) throw new Error('Failed to create ZIP folder');
+
+        for (const slide of carouselExport.slides) {
+          folder.file(slide.name, slide.content);
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${selectedCarousel.id}_svg.zip`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        toast.success(`Exported ${selectedCarousel.slides.length} SVGs as ZIP`);
+      }
+    } catch (error) {
+      console.error('SVG export error:', error);
+      toast.error('Failed to export SVGs');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Unified download function based on format
+  const handleDownloadSlide = () => {
+    if (exportFormat === 'svg') {
+      downloadSlideSvg();
+    } else {
+      downloadSlide();
+    }
+  };
+
+  const handleDownloadAll = () => {
+    if (exportFormat === 'svg') {
+      downloadAllSlidesSvg();
+    } else {
+      downloadAllSlides();
     }
   };
 
@@ -898,24 +1024,87 @@ export default function Editor() {
               </p>
             </div>
 
-            {/* Right: Download Buttons */}
-            <div className="flex gap-4">
+            {/* Right: Format Toggle + Download Buttons */}
+            <div className="flex items-center gap-4">
+              {/* Export Format Toggle */}
+              <div className="flex items-center bg-gray-100 rounded-xl border-3 border-black p-1">
+                <button
+                  onClick={() => setExportFormat('png')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+                    exportFormat === 'png'
+                      ? 'bg-white shadow-sm'
+                      : 'text-gray-600 hover:text-black'
+                  }`}
+                  title="PNG - for posting"
+                >
+                  <Image size={16} />
+                  PNG
+                </button>
+                <button
+                  onClick={() => setExportFormat('svg')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+                    exportFormat === 'svg'
+                      ? 'bg-white shadow-sm'
+                      : 'text-gray-600 hover:text-black'
+                  }`}
+                  title="SVG - editable in Figma"
+                >
+                  <FileCode size={16} />
+                  SVG
+                </button>
+              </div>
+
+              {/* Download Buttons */}
               <button
-                onClick={downloadSlide}
+                onClick={handleDownloadSlide}
                 disabled={isExporting}
                 className="dof-btn dof-btn-coral px-5 py-3 text-sm"
               >
                 <Download size={18} />
-                DOWNLOAD SLIDE
+                {exportFormat === 'svg' ? 'EXPORT SLIDE' : 'DOWNLOAD SLIDE'}
               </button>
-              <button
-                onClick={downloadAllSlides}
-                disabled={isExporting}
-                className="dof-btn dof-btn-black px-5 py-3 text-sm"
-              >
-                <Download size={18} />
-                ALL ({selectedCarousel?.slides.length})
-              </button>
+
+              {/* All Slides Button with Dropdown for Desktop */}
+              {isDesktop() && exportFormat === 'svg' ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      disabled={isExporting}
+                      className="dof-btn dof-btn-black px-5 py-3 text-sm"
+                    >
+                      <FolderOpen size={18} />
+                      EXPORT ALL ({selectedCarousel?.slides.length})
+                      <ChevronDown size={16} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="border-3 border-black rounded-xl">
+                    <DropdownMenuItem
+                      onClick={handleDownloadAll}
+                      className="font-bold"
+                    >
+                      <FolderOpen size={16} />
+                      Export to Folder
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={downloadAllSlidesSvg}
+                      className="font-bold"
+                    >
+                      <Download size={16} />
+                      Download as ZIP
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <button
+                  onClick={handleDownloadAll}
+                  disabled={isExporting}
+                  className="dof-btn dof-btn-black px-5 py-3 text-sm"
+                >
+                  <Download size={18} />
+                  ALL ({selectedCarousel?.slides.length})
+                </button>
+              )}
             </div>
           </div>
         </div>

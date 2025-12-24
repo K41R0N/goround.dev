@@ -120,7 +120,14 @@ export default function LayoutExplorer({
           font_color: slide.font_color,
           accent_color: slide.accent_color,
         },
-        fonts: getFontSettings(),
+        fonts: (() => {
+          const settings = getFontSettings();
+          return {
+            heading: settings.headingFont,
+            body: settings.bodyFont,
+            accent: settings.accentFont,
+          };
+        })(),
       };
 
       return <ComponentRenderer schema={componentLayout} context={context} />;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import DOMPurify from 'isomorphic-dompurify';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,10 @@ import {
   Upload,
   Code,
   Info,
+  Figma,
+  FileCode,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 import FontsSettings from '../components/FontsSettings';
 import ComponentLayoutsSettings from '../components/ComponentLayoutsSettings';
@@ -45,6 +49,8 @@ import {
   DEFAULT_HTML_TEMPLATE,
   DEFAULT_CSS_TEMPLATE,
 } from '../lib/customLayoutStorage';
+import { parseFigmaSvg, isFigmaSvg, detectFonts, extractColorPalette } from '../lib/figmaParser';
+import { isDesktop, getStorage } from '../lib/storage';
 import type { CustomLayout } from '../types/customLayout';
 
 export default function Settings() {
@@ -56,6 +62,17 @@ export default function Settings() {
   const [previewLayout, setPreviewLayout] = useState<CustomLayout | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [layoutToDelete, setLayoutToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [figmaImportOpen, setFigmaImportOpen] = useState(false);
+  const [importedSvg, setImportedSvg] = useState<{
+    name: string;
+    content: string;
+    layout: CustomLayout | null;
+    fonts: string[];
+    colors: string[];
+  } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const figmaSvgInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [layoutName, setLayoutName] = useState('');
@@ -183,6 +200,93 @@ export default function Settings() {
     event.target.value = '';
   };
 
+  // Figma SVG Import Handlers
+  const handleFigmaImportClick = async () => {
+    // On desktop, use native file dialog via IPC
+    if (isDesktop()) {
+      const storage = getStorage();
+      if (storage.importFigmaSvg) {
+        setIsImporting(true);
+        try {
+          const result = await storage.importFigmaSvg();
+          if (result.success && result.template) {
+            loadCustomLayouts();
+            toast.success('Layout imported from Figma!');
+            setFigmaImportOpen(false);
+          } else if (!result.success && result.error) {
+            toast.error(result.error);
+          }
+        } catch (error) {
+          toast.error('Failed to import Figma SVG');
+        } finally {
+          setIsImporting(false);
+        }
+      }
+    } else {
+      // On web, open file picker
+      setFigmaImportOpen(true);
+    }
+  };
+
+  const handleFigmaSvgSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = e.target?.result as string;
+
+        // Validate it's an SVG
+        if (!isFigmaSvg(content)) {
+          toast.error('Please select a valid SVG file');
+          setIsImporting(false);
+          return;
+        }
+
+        // Parse the SVG
+        const layout = await parseFigmaSvg(content, file.name.replace('.svg', ''));
+        const fonts = detectFonts(content);
+        const colors = extractColorPalette(content);
+
+        setImportedSvg({
+          name: file.name,
+          content,
+          layout,
+          fonts,
+          colors,
+        });
+      } catch (error) {
+        console.error('Failed to parse Figma SVG:', error);
+        toast.error('Failed to parse SVG file');
+      } finally {
+        setIsImporting(false);
+      }
+    };
+
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const handleConfirmFigmaImport = () => {
+    if (!importedSvg?.layout) {
+      toast.error('No layout to import');
+      return;
+    }
+
+    try {
+      saveCustomLayout(importedSvg.layout);
+      loadCustomLayouts();
+      toast.success('Layout imported from Figma!');
+      setFigmaImportOpen(false);
+      setImportedSvg(null);
+    } catch (error) {
+      toast.error('Failed to save imported layout');
+    }
+  };
+
   const renderPreview = (layout: CustomLayout) => {
     const sampleData = {
       title: 'Sample Title',
@@ -292,6 +396,15 @@ export default function Settings() {
                   </div>
 
                   <div className="flex gap-4">
+                    {/* Figma Import Button */}
+                    <button
+                      onClick={handleFigmaImportClick}
+                      className="dof-btn dof-btn-outline border-purple-600 text-purple-600 hover:bg-purple-50"
+                    >
+                      <FileCode size={18} />
+                      Import from Figma
+                    </button>
+
                     <input
                       type="file"
                       accept=".json"
@@ -305,7 +418,7 @@ export default function Settings() {
                       className="dof-btn dof-btn-outline"
                     >
                       <Upload size={18} />
-                      Import
+                      Import JSON
                     </button>
                     <button
                       onClick={handleExport}
@@ -379,7 +492,7 @@ export default function Settings() {
                         </div>
 
                         <div className="pt-5 border-t-[3px] border-black dof-body-sm text-gray-500">
-                          Modified {new Date(layout.modifiedAt).toLocaleDateString()}
+                          Modified {new Date(layout.modifiedAt || layout.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     ))}
@@ -581,6 +694,144 @@ export default function Settings() {
               Delete Layout
             </button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Figma Import Dialog */}
+      <Dialog open={figmaImportOpen} onOpenChange={(open) => {
+        setFigmaImportOpen(open);
+        if (!open) setImportedSvg(null);
+      }}>
+        <DialogContent className="border-4 border-black rounded-3xl max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold uppercase flex items-center gap-3">
+              <FileCode className="h-6 w-6 text-purple-600" />
+              IMPORT FROM FIGMA
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Import a Figma-exported SVG as a reusable layout template
+            </DialogDescription>
+          </DialogHeader>
+
+          {!importedSvg ? (
+            <>
+              {/* Instructions */}
+              <div className="bg-purple-50 border-3 border-purple-200 rounded-2xl p-6 my-4">
+                <h4 className="font-bold mb-4 text-purple-900">How to prepare your Figma design:</h4>
+                <ol className="space-y-3 text-sm text-purple-800">
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                    <span>Create your layout in Figma at <strong>1080×1080px</strong> (or your target size)</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                    <span>Name text layers with variables: <code className="bg-white px-1 rounded">{"{{title}}"}</code>, <code className="bg-white px-1 rounded">{"{{body_text}}"}</code>, etc.</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                    <span>Select the frame and export as <strong>SVG</strong></span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                    <span>Import the SVG file here</span>
+                  </li>
+                </ol>
+              </div>
+
+              {/* File Input */}
+              <div className="border-3 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-purple-400 transition-colors">
+                <input
+                  ref={figmaSvgInputRef}
+                  type="file"
+                  accept=".svg"
+                  onChange={handleFigmaSvgSelect}
+                  className="hidden"
+                />
+                <FileCode className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-bold mb-2">Drop SVG file here or click to browse</p>
+                <p className="text-sm text-gray-500 mb-4">Supports .svg files exported from Figma</p>
+                <button
+                  onClick={() => figmaSvgInputRef.current?.click()}
+                  disabled={isImporting}
+                  className="dof-btn dof-btn-outline border-purple-600 text-purple-600"
+                >
+                  {isImporting ? 'Processing...' : 'Choose SVG File'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Import Preview */}
+              <div className="space-y-4 my-4">
+                {importedSvg.layout ? (
+                  <div className="bg-green-50 border-3 border-green-200 rounded-2xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <CheckCircle className="h-6 w-6 text-green-600" />
+                      <h4 className="font-bold text-green-900">SVG parsed successfully!</h4>
+                    </div>
+
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Layout Name:</span>
+                        <span className="font-bold">{importedSvg.layout.name}</span>
+                      </div>
+
+                      {importedSvg.fonts.length > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Detected Fonts:</span>
+                          <span className="font-mono text-xs">{importedSvg.fonts.slice(0, 3).join(', ')}</span>
+                        </div>
+                      )}
+
+                      {importedSvg.colors.length > 0 && (
+                        <div>
+                          <span className="text-gray-600 block mb-2">Color Palette:</span>
+                          <div className="flex gap-2">
+                            {importedSvg.colors.slice(0, 6).map((color, i) => (
+                              <div
+                                key={i}
+                                className="w-8 h-8 rounded-lg border-2 border-black"
+                                style={{ backgroundColor: color }}
+                                title={color}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 border-3 border-yellow-200 rounded-2xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <AlertCircle className="h-6 w-6 text-yellow-600" />
+                      <h4 className="font-bold text-yellow-900">Could not detect template variables</h4>
+                    </div>
+                    <p className="text-sm text-yellow-800">
+                      The SVG was parsed but no <code>{"{{variable}}"}</code> patterns were found.
+                      You can still import it as a static layout.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="gap-3">
+                <button
+                  onClick={() => setImportedSvg(null)}
+                  className="dof-btn dof-btn-outline"
+                >
+                  Choose Different File
+                </button>
+                <button
+                  onClick={handleConfirmFigmaImport}
+                  disabled={!importedSvg.layout}
+                  className="dof-btn dof-btn-coral"
+                >
+                  <Plus size={18} />
+                  Import Layout
+                </button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

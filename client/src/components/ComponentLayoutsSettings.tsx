@@ -262,7 +262,14 @@ export default function ComponentLayoutsSettings() {
         font_color: '#1a1a1a',
         accent_color: '#B8312F',
       },
-      fonts: getFontSettings(),
+      fonts: (() => {
+        const settings = getFontSettings();
+        return {
+          heading: settings.headingFont,
+          body: settings.bodyFont,
+          accent: settings.accentFont,
+        };
+      })(),
     };
 
     // Calculate scale to fit preview container
